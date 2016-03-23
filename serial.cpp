@@ -2,7 +2,23 @@
 #include <stdio.h>
 #include <assert.h>
 #include <math.h>
-#include "common.h"
+#include <vector>
+#include "world.h"
+#include <iostream>
+
+
+#define MARGIN      0
+
+#define density	0.0005
+#define mass	0.01
+#define cutoff	0.01
+#define min_r	(cutoff/100)
+#define dt	0.0005
+
+
+using namespace std;
+
+
 
 //
 //  benchmarking program
@@ -11,6 +27,8 @@ int main( int argc, char **argv )
 {    
     int navg,nabsavg=0;
     double davg,dmin, absmin=1.0, absavg=0.0;
+    
+    //cout << "meow0" << endl;
 
     if( find_option( argc, argv, "-h" ) >= 0 )
     {
@@ -31,10 +49,25 @@ int main( int argc, char **argv )
     FILE *fsave = savename ? fopen( savename, "w" ) : NULL;
     FILE *fsum = sumname ? fopen ( sumname, "a" ) : NULL;
 
-    particle_t *particles = (particle_t*) malloc( n * sizeof(particle_t) );
-    set_size( n );
-    init_particles( n, particles );
     
+    set_size( n );
+
+    //particle_t *particles = (particle_t*) malloc( n * sizeof(particle_t) );
+    double grid_size = sqrt(density * n);
+    
+    //Generate a new grid with myGridSize = get_size(), myBinSize = get_cutoff()+MARGIN, and myParticleNum = n;
+    grid_t newGrid(grid_size, cutoff + MARGIN, n);
+
+    int bin_number = newGrid.getNumBin();
+    //Generate a nuw world with ...
+    world_t newWorld(newGrid, n, bin_number);
+    init_particles( n, newWorld.particles.data() );
+   /* 
+    for(int i = 0; i < newWorld.particles.size(); i++)
+    {
+        cout << newWorld.particles[i].x << endl;
+    }*/
+    // cout << "meow1" << endl;
     //
     //  simulate a number of time steps
     //
@@ -42,24 +75,23 @@ int main( int argc, char **argv )
 	
     for( int step = 0; step < NSTEPS; step++ )
     {
-	navg = 0;
+	    navg = 0;
         davg = 0.0;
-	dmin = 1.0;
+	    dmin = 1.0;
+        
+
         //
-        //  compute forces
+        //cout << step << endl;
+        //cout << "meow0" << endl;
+        newWorld.resetDivision();
+
         //
-        for( int i = 0; i < n; i++ )
-        {
-            particles[i].ax = particles[i].ay = 0;
-            for (int j = 0; j < n; j++ )
-				apply_force( particles[i], particles[j],&dmin,&davg,&navg);
-        }
- 
+        //cout << "meow1" << endl;
+        newWorld.computeAllParticleForces(&dmin, &davg, &navg);
+
         //
-        //  move particles
-        //
-        for( int i = 0; i < n; i++ ) 
-            move( particles[i] );		
+        //cout << "meow2" << endl;
+        newWorld.moveParticles();
 
         if( find_option( argc, argv, "-no" ) == -1 )
         {
@@ -76,7 +108,7 @@ int main( int argc, char **argv )
           //  save if necessary
           //
           if( fsave && (step%SAVEFREQ) == 0 )
-              save( fsave, n, particles );
+              save( fsave, n, newWorld.particles.data() ); //****************************************************************
         }
     }
     simulation_time = read_timer( ) - simulation_time;
@@ -110,7 +142,7 @@ int main( int argc, char **argv )
     //
     if( fsum )
         fclose( fsum );    
-    free( particles );
+//    free( particles );
     if( fsave )
         fclose( fsave );
     

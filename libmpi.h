@@ -2,8 +2,7 @@
 #define LIBOMP_H
 
 #include <vector>
-#include <omp.h>
-#include "common_mpi.h"
+#include "common.h"
 #include <stdlib.h>
 
 using namespace std;

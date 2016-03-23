@@ -4,10 +4,24 @@
 #include <math.h>
 #include "common.h"
 #include "omp.h"
+#include "libomp.h"
+#include <iostream>
 
 //
 //  benchmarking program
 //
+
+#define density 0.0005
+#define mass	0.01
+#define cutoff	0.01
+#define min_r	(cutoff/100)
+#define dt	0.0005
+
+using namespace std;
+
+// direction Directions[9] = {{-1,-1},{-1,0},{-1,1},{0,-1},{0,0},{0,1},{1,-1},{1,0},{1,1}};
+
+
 int main( int argc, char **argv )
 {   
     int navg,nabsavg=0,numthreads; 
@@ -31,10 +45,22 @@ int main( int argc, char **argv )
     FILE *fsave = savename ? fopen( savename, "w" ) : NULL;
     FILE *fsum = sumname ? fopen ( sumname, "a" ) : NULL;      
 
+    int p = read_int(argc, argv, "-p", 1);
+    omp_set_num_threads(p);
+
     particle_t *particles = (particle_t*) malloc( n * sizeof(particle_t) );
     set_size( n );
     init_particles( n, particles );
 
+
+    double gridSize = sqrt(density * n);
+    int binNumPerEdge = ceil(gridSize / cutoff);
+    int binNumber = binNumPerEdge * binNumPerEdge;
+    bin_t* bins = new bin_t[binNumber];
+
+    omp_lock_t* locks = (omp_lock_t*) malloc(binNumber * sizeof(omp_lock_t));
+    for(int i = 0; i < binNumber; i++)
+        omp_init_lock(locks+i);
     //
     //  simulate a number of time steps
     //
@@ -48,18 +74,37 @@ int main( int argc, char **argv )
         navg = 0;
         davg = 0.0;
 	dmin = 1.0;
-        //
+        
+      //  #pragma omp for schedule(static)
+	#pragma omp for
+        for (int i = 0; i < binNumber; i++)
+        {
+            bins[i].particlesInBin.clear();
+        }
+      //  cout << "moew1" << endl;
+
+     //   #pragma omp for schedule(static, 125)
+      	#pragma omp for
+	for(int i = 0; i < n; i++)
+        {
+            int bin_x = particles[i].x / cutoff;
+            int bin_y = particles[i].y / cutoff;
+            int binIndex = bin_x + bin_y * binNumPerEdge;
+            omp_set_lock(locks + binIndex);
+            bins[binIndex].particlesInBin.push_back(particles+i);
+            omp_unset_lock(locks+binIndex);
+        }
+	//
         //  compute all forces
         //
+      //  cout << "meow2" << endl;
         #pragma omp for reduction (+:navg) reduction(+:davg)
-        for( int i = 0; i < n; i++ )
+        for( int i = 0; i < binNumber; i++ )
         {
-            particles[i].ax = particles[i].ay = 0;
-            for (int j = 0; j < n; j++ )
-                apply_force( particles[i], particles[j],&dmin,&davg,&navg);
+	    apply_force_per_bin(bins, i, binNumPerEdge, &dmin, &davg, &navg);  
         }
         
-		
+       // cout << "meow3" << endl;
         //
         //  move particles
         //
@@ -123,6 +168,9 @@ int main( int argc, char **argv )
         fclose( fsum );
 
     free( particles );
+    delete[] bins;
+    free(locks);
+
     if( fsave )
         fclose( fsave );
     

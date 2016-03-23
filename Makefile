@@ -10,16 +10,16 @@ CFLAGS = -O3
 LIBS =
 
 
-TARGETS = autograder openmp_new mpi_new serial_new mpi_cf1 mpi_cf_Alltoallv
+TARGETS = autograder openmp mpi serial
 
 all:	$(TARGETS)
 
 #serial: serial.o common.o
 #	$(CC) -o $@ $(LIBS) serial.o common.o
-serial_new: serial_new.o common_new.o world.o grid.o
-	$(CC) -o $@ $(LIBS) serial_new.o common_new.o world.o grid.o
-autograder: autograder.o common_new.o
-	$(CC) -o $@ $(LIBS) autograder.o common_new.o
+serial: serial.o common_new.o world.o grid.o
+	$(CC) -o $@ $(LIBS) serial.o common_new.o world.o grid.o
+autograder: autograder.o common.o
+	$(CC) -o $@ $(LIBS) autograder.o common.o
 #pthreads: pthreads.o common.o
 #	$(CC) -o $@ $(LIBS) -lpthread pthreads.o common.o
 #openmp: openmp.o common.o
@@ -30,14 +30,14 @@ autograder: autograder.o common_new.o
 #	$(CC) -o $@ $(LIBS) serial-try.o world.o grid.o common.o
 #openmp-try: openmp-try.o world_omp.o grid.o common.o
 #	$(CC) -o $@ $(LIBS) $(OPENMP) openmp-try.o world_omp.o grid.o common.o
-openmp_new: openmp_new.o common_new.o libomp.o
-	$(CC) -o $@ $(LIBS) $(OPENMP) openmp_new.o common_new.o libomp.o
-mpi_new: mpi_new.o common.o libmpi.o
-	$(MPCC) -o $@ $(LIBS) $(MPILIBS) mpi_new.o common_new.o libmpi.o
-mpi_cf1: mpi_cf1.o common_new.o libmpi.o
-	$(MPCC) -o $@ $(LIBS) $(MPILIBS) mpi_cf1.o common.o libmpi.o
-mpi_cf_Alltoallv: mpi_cf_Alltoallv.o common.o libmpi.o
-	$(MPCC) -o $@ $(LIBS) $(MPILIBS) mpi_cf_Alltoallv.o common.o libmpi.o
+openmp: openmp.o common.o libomp.o
+	$(CC) -o $@ $(LIBS) $(OPENMP) openmp.o common.o libomp.o
+mpi: mpi.o common.o libmpi.o
+	$(MPCC) -o $@ $(LIBS) $(MPILIBS) mpi.o common.o libmpi.o
+#mpi_cf1: mpi_cf1.o common_new.o libmpi.o
+#	$(MPCC) -o $@ $(LIBS) $(MPILIBS) mpi_cf1.o common.o libmpi.o
+#mpi_cf_Alltoallv: mpi_cf_Alltoallv.o common.o libmpi.o
+#	$(MPCC) -o $@ $(LIBS) $(MPILIBS) mpi_cf_Alltoallv.o common.o libmpi.o
 
 autograder.o: autograder.cpp common.h
 	$(CC) -c $(CFLAGS) autograder.cpp
@@ -45,18 +45,18 @@ autograder.o: autograder.cpp common.h
 #	$(CC) -c $(OPENMP) $(CFLAGS) openmp.cpp
 #serial.o: serial.cpp common.h
 #	$(CC) -c $(CFLAGS) serial.cpp
-serial_new.o: serial_new.cpp world.h common_new.h grid.h world.cpp common_new.cpp grid.cpp
-	$(CC) -c $(CFLAGS) serial_new.cpp
+serial.o: serial.cpp world.h common_new.h grid.h world.cpp common_new.cpp grid.cpp
+	$(CC) -c $(CFLAGS) serial.cpp
 #openmp-try.o: openmp-try.cpp world_omp.h common.h grid.h world_omp.cpp common.cpp grid.cpp
 #	$(CC) -c $(OPENMP) $(CFLAGS) openmp-try.cpp
-openmp_new.o: openmp_new.cpp libomp.h libomp.cpp common_new.h common_new.cpp
-	$(CC) -c $(OPENMP) $(CFLAGS) openmp_new.cpp
-mpi_new.o: mpi_new.cpp libmpi.h libmpi.cpp common_new.h common_new.cpp
-	$(MPCC) -c $(CFLAGS) mpi_new.cpp
-mpi_cf1.o: mpi_cf1.cpp libmpi.h libmpi.cpp common.h common.cpp
-	$(MPCC) -c $(CFLAGS) mpi_cf1.cpp
-mpi_cf_Alltoallv.o: mpi_cf_Alltoallv.cpp libmpi.h libmpi.cpp common.h common.cpp
-	$(MPCC) -c $(CFLAGS) mpi_cf_Alltoallv.cpp
+openmp.o: openmp.cpp libomp.h libomp.cpp common.h common.cpp
+	$(CC) -c $(OPENMP) $(CFLAGS) openmp.cpp
+mpi.o: mpi.cpp libmpi.h libmpi.cpp common.h common.cpp
+	$(MPCC) -c $(CFLAGS) mpi.cpp
+#mpi_cf1.o: mpi_cf1.cpp libmpi.h libmpi.cpp common.h common.cpp
+#	$(MPCC) -c $(CFLAGS) mpi_cf1.cpp
+#mpi_cf_Alltoallv.o: mpi_cf_Alltoallv.cpp libmpi.h libmpi.cpp common.h common.cpp
+#	$(MPCC) -c $(CFLAGS) mpi_cf_Alltoallv.cpp
 
 #pthreads.o: pthreads.cpp common.h
 #	$(CC) -c $(CFLAGS) pthreads.cpp
